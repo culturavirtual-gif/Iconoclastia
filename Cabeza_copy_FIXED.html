@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Overlay con carrusel vertical independiente</title>
+  <style>
+    :root{
+      --bg:#0b0d12; --fg:#e5e7eb; --line:#232938;
+      --rail:260px;           /* ancho del carril derecho */
+      --thumbH:120px;         /* alto de miniaturas */
+    }
+
+    /* Página base sin scroll de fondo */
+    html,body{ height:100%; margin:0; background:var(--bg); color:var(--fg); overflow:hidden; font-family:system-ui, -apple-system, Segoe UI, Roboto, sans-serif }
+
+    /* Dummy contenido base (opcional) */
+    .scene{
+      height:100%;
+      display:grid;
+      place-items:center;
+    }
+    .btn{ padding:10px 16px; border:1px solid var(--line); border-radius:8px; background:#111; color:#fff; cursor:pointer }
+
+    /* Overlay principal */
+    #infoOverlay{
+      position:fixed; inset:0; z-index:10002;
+      background:rgba(0,0,0,.6);
+      display:none;           /* abrir/cerrar vía JS */
+    }
+    .info-content{
+      position:absolute; top:10%; left:10%;
+      width:80%; height:80%;
+      background:rgba(0,0,0,.515);
+      color:#fff; padding:16px; border-radius:12px;
+      display:flex; flex-direction:column; gap:12px;
+      overflow:hidden;        /* evita scroll global en overlay */
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    .bar{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px;
+    }
+    .title{ font-weight:600; letter-spacing:.3px }
+    .close{ cursor:pointer; border:1px solid var(--line); background:#0b0d12; color:#fff; border-radius:8px; padding:6px 10px }
+
+    /* Grid interno: izquierda texto/visor, derecha carril */
+    .infogrid{
+      display:grid;
+      grid-template-columns:minmax(0,1fr) var(--rail);
+      gap:16px;
+      flex:1 1 auto;
+      min-height:0;           /* clave para permitir scroll interno */
+    }
+    .leftcol{ display:grid; grid-template-rows:auto 1fr; gap:12px; min-height:0 }
+    .text-zone{
+      overflow:hidden;        /* texto fijo */
+      border:1px dashed rgba(255,255,255,.08);
+      border-radius:8px; padding:10px;
+    }
+    .viewer{
+      min-height:240px; height:50vh;
+      background:#0a0a0a;
+      border:1px solid var(--line); border-radius:10px;
+      display:grid; place-items:center;
+    }
+    .viewer small{ opacity:.7 }
+
+    /* Carril derecho y carrusel vertical */
+    .rail{ min-height:0 }     /* clave */
+    .vcarousel{
+      min-height:0;           /* clave */
+      display:grid;
+      grid-template-rows:auto 1fr auto; /* ▲ [lista] ▼ */
+      gap:8px;
+      height:100%;
+      border-left:1px solid rgba(255,255,255,.1);
+      padding-left:8px;
+    }
+    .vc-nav{ display:flex; gap:8px; align-items:center; justify-content:space-between }
+    .vc-btn{
+      cursor:pointer; width:100%; padding:8px 10px;
+      border-radius:8px; background:#0f1117; color:#e5e7eb;
+      border:1px solid var(--line);
+      user-select:none;
+    }
+    .vc-viewport{
+      min-height:0;           /* clave */
+      height:100%;            /* el scroll vive aquí */
+      overflow-y:auto;        /* solo vertical */
+      overflow-x:hidden;      /* sin horizontal */
+      overscroll-behavior:contain; /* no se propaga al overlay */
+      scroll-snap-type:y mandatory;
+      padding-right:4px;
+    }
+    .vc-track{ display:flex; flex-direction:column; gap:10px }
+    .vc-item{
+      display:block;
+      width:100%; height:var(--thumbH);
+      object-fit:cover;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,.12);
+      scroll-snap-align:start;
+      cursor:pointer;
+    }
+
+    /* Overlay de imagen grande */
+    #imgOverlay{
+      position:fixed; inset:0; z-index:10003;
+      background:rgba(0,0,0,.85);
+      display:none;
+      align-items:center; justify-content:center;
+      padding:20px;
+    }
+    .imgbox{
+      position:relative;
+      max-width:min(90vw, 1200px);
+      max-height:85vh;
+      background:rgba(0,0,0,.9);
+      padding:12px; border-radius:12px;
+      display:flex; flex-direction:column; gap:8px; align-items:center;
+      overflow:hidden;
+      border:1px solid var(--line);
+    }
+    .imgbox img{ max-width:100%; max-height:calc(85vh - 56px); display:block }
+    .imgbox figcaption{ font-size:.92rem; line-height:1.35; color:#ddd; text-align:center }
+    .imgbox .close{ position:absolute; top:8px; right:12px }
+  </style>
+</head>
+<body>
+
+  <!-- Contenido base de prueba -->
+  <div class="scene">
+    <button class="btn" id="openInfo">Abrir overlay de información</button>
+  </div>
+
+  <!-- Overlay principal con carrusel vertical -->
+  <div id="infoOverlay" aria-modal="true" role="dialog">
+    <div class="info-content">
+      <div class="bar">
+        <div class="title">Cabeza de Adolfo López Mateos — Material de referencia</div>
+        <button class="close" id="closeInfo" aria-label="Cerrar">Cerrar</button>
+      </div>
+
+      <div class="infogrid">
+        <!-- Columna izquierda: texto + visor -->
+        <div class="leftcol">
+          <section class="text-zone">
+            <h2 style="margin:.2rem 0 0.4rem 0">Contexto</h2>
+            <p style="margin:0">
+              Texto fijo. Aquí va la descripción, cronología o ficha curatorial.
+              Esta área no se desplaza cuando se recorre el carrusel.
+            </p>
+          </section>
+
+          <section class="viewer" aria-label="Visor">
+            <!-- Reemplaza por tu visor 3D o imagen -->
+            <small>Visor/3D aquí (fijo)</small>
+          </section>
+        </div>
+
+        <!-- Columna derecha: carrusel vertical independiente -->
+        <aside class="rail">
+          <div class="vcarousel" aria-label="Carrusel de imágenes">
+            <div class="vc-nav"><button class="vc-btn" id="vcPrev" aria-label="Subir">▲</button></div>
+            <div class="vc-viewport" id="vcViewport" tabindex="0" aria-label="Lista de miniaturas">
+              <div class="vc-track" id="vcTrack">
+                <!-- Se llena por JS -->
+              </div>
+            </div>
+            <div class="vc-nav"><button class="vc-btn" id="vcNext" aria-label="Bajar">▼</button></div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay de imagen grande -->
+  <div id="imgOverlay" aria-modal="true" role="dialog">
+    <figure class="imgbox">
+      <button class="close" id="imgClose" aria-label="Cerrar imagen">✖</button>
+      <img id="imgFull" alt="Imagen ampliada">
+      <figcaption id="imgNote"></figcaption>
+    </figure>
+  </div>
+
+  <script>
+    // ===== Datos del carrusel: ajusta rutas y notas =====
+    const VC_IMGS = [
+      {src:'assets/img/CALM/CALM_01.jpg', note:'Manta sobre la boca, aprox. 2020. Foto: autor.'},
+      {src:'assets/img/CALM/CALM_02.jpg', note:'Vista lateral con pintura oscura, 2025.'},
+      {src:'assets/img/CALM/CALM_03.jpg', note:'Detalle de cantera y fisuras.'},
+      {src:'assets/img/CALM/CALM_04.jpg', note:'Intervención con consignas feministas.'},
+      {src:'assets/img/CALM/CALM_05.jpg', note:'Plaza central, escala del monumento.'},
+      {src:'assets/img/CALM/CALM_06.jpg', note:'Pancarta colocada por estudiantes.'}
+    ];
+
+    // ===== Utilidades de overlays =====
+    const infoOverlay = document.getElementById('infoOverlay');
+    const imgOverlay  = document.getElementById('imgOverlay');
+    const openInfoBtn = document.getElementById('openInfo');
+    const closeInfoBtn= document.getElementById('closeInfo');
+    const imgFull     = document.getElementById('imgFull');
+    const imgNote     = document.getElementById('imgNote');
+    const imgCloseBtn = document.getElementById('imgClose');
+
+    function abrirInfo(){
+      infoOverlay.style.display = 'block';
+      // Reinicia el scroll del carrusel al abrir
+      const vp = document.getElementById('vcViewport');
+      if (vp) vp.scrollTop = 0;
+    }
+    function cerrarInfo(){ infoOverlay.style.display = 'none' }
+
+    function abrirImagenGrande(src, note){
+      imgFull.src = src;
+      imgNote.textContent = note || '';
+      imgOverlay.style.display = 'flex';
+    }
+    function cerrarImagen(){ imgOverlay.style.display = 'none' }
+
+    openInfoBtn.addEventListener('click', abrirInfo);
+    closeInfoBtn.addEventListener('click', cerrarInfo);
+    imgCloseBtn.addEventListener('click', cerrarImagen);
+    imgOverlay.addEventListener('click', e => { if (e.target === imgOverlay) cerrarImagen() });
+    infoOverlay.addEventListener('click', e => {
+      // Cerrar al hacer click fuera del cuadro
+      const box = e.target.closest('.info-content');
+      if (!box) cerrarInfo();
+    });
+
+    // Cerrar con Escape
+    window.addEventListener('keydown', e => {
+      if (e.key === 'Escape'){
+        if (imgOverlay.style.display !== 'none') cerrarImagen();
+        else if (infoOverlay.style.display !== 'none') cerrarInfo();
+      }
+    });
+
+    // ===== Render del carrusel + navegación =====
+    const track = document.getElementById('vcTrack');
+    const vp    = document.getElementById('vcViewport');
+    const up    = document.getElementById('vcPrev');
+    const dn    = document.getElementById('vcNext');
+
+    // Inserta thumbnails
+    track.innerHTML = VC_IMGS.map((it,i) =>
+      `<img class="vc-item" src="${it.src}" alt="Imagen ${i+1}" data-note="${it.note?.replace(/"/g,'&quot;') || ''}">`
+    ).join('');
+
+    // Navegación vertical
+    const step = () => Math.max(200, vp.clientHeight * 0.9);
+    up.addEventListener('click', () => vp.scrollBy({top:-step(), behavior:'smooth'}));
+    dn.addEventListener('click', () => vp.scrollBy({top: step(), behavior:'smooth'}));
+
+    // Solo scroll vertical dentro del carrusel. No se propaga al overlay.
+    vp.addEventListener('wheel', e => e.stopPropagation(), {passive:true});
+    vp.addEventListener('touchmove', e => e.stopPropagation(), {passive:true});
+
+    // Click en thumbnail => overlay grande con nota al pie
+    track.addEventListener('click', e => {
+      const img = e.target.closest('.vc-item');
+      if (!img) return;
+      abrirImagenGrande(img.src, img.dataset.note || img.alt || '');
+    });
+  </script>
+</body>
+</html>

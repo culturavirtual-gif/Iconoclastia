@@ -1,0 +1,169 @@
+
+  :root{--bg:#0b0d12;--fg:#c77b08;--muted:#ffebc7;--line:#232938}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,
+    Segoe UI,Roboto,sans-serif}
+  #webgl{position:fixed;inset:0;z-index:1;pointer-events:none}
+  
+  main{position:relative;}
+  section{min-height:100svh;display:grid;gap:1.25rem;padding:6rem 1rem}
+  section{position:relative; z-index:5}   /* por defecto: sobre el canvas si subes este valor */
+  section.front{ z-index:20 }             /* siempre delante del modelo */
+  section.behind{ z-index:0 } 
+
+    /* ===== Comportamiento de .wrap (usa variables heredadas) ===== */
+  .wrap{
+    /* valores por defecto si una sección no define variables */
+    --h: start;   /* start | center | end */
+    --v: start;   /* start | center | end */
+    --x: 100px;      /* offset horizontal */
+    --y: 50px;      /* offset vertical */
+    --max: 1000px; /* ancho máximo */
+
+    max-width: var(--max);
+    position: relative;
+    left: var(--x);
+    top:  var(--y);
+    justify-self: var(--h);
+    align-self:    var(--v);
+    margin: 0; /* evita pelear con justify-self */
+ 
+
+  }
+
+  .wrap1{
+    /* valores por defecto si una sección no define variables */
+    --h: start;   /* start | center | end */
+    --v: start;   /* start | center | end */
+    --x: 150px;      /* offset horizontal */
+    --y: 0px;      /* offset vertical */
+    --max: 500px; /* ancho máximo */
+
+    max-width: var(--max);
+    position: relative;
+    left: var(--x);
+    top:  var(--y);
+    justify-self: var(--h);
+    align-self:    var(--v);
+    margin: 0; /* evita pelear con justify-self */
+ 
+  }
+
+    .wrap2{
+    /* valores por defecto si una sección no define variables */
+    --h: center;   /* start | center | end */
+    --v: center;   /* start | center | end */
+    --x: 0px;      /* offset horizontal */
+    --y: 100px;      /* offset vertical */
+    --max: 1000px; /* ancho máximo */
+
+    max-width: var(--max);
+    position: relative;
+    left: var(--x);
+    top:  var(--y);
+    justify-self: var(--h);
+    align-self:    var(--v);
+    margin: 0; /* evita pelear con justify-self */
+ 
+  }
+
+  .wrap3{
+    /* valores por defecto si una sección no define variables */
+    --h: center;   /* start | center | end */
+    --v: center;   /* start | center | end */
+    --x: -70px;      /* offset horizontal */
+    --y:0px;      /* offset vertical */
+    --max: 1000px; /* ancho máximo */
+
+    max-width: var(--max);
+    position: relative;
+    left: var(--x);
+    top:  var(--y);
+    justify-self: var(--h);
+    align-self:    var(--v);
+    margin: 0; /* evita pelear con justify-self */
+ 
+  }
+
+    .wrap4{
+    /* valores por defecto si una sección no define variables */
+    --h: end;   /* start | center | end */
+    --v: center;   /* start | center | end */
+    --x: -300px;      /* offset horizontal */
+    --y:0px;      /* offset vertical */
+    --max: 1000px; /* ancho máximo */
+
+    max-width: var(--max);
+    position: relative;
+    left: var(--x);
+    top:  var(--y);
+    justify-self: var(--h);
+    align-self:    var(--v);
+    margin: 0; /* evita pelear con justify-self */
+ 
+  }
+ 
+
+
+  /* Estilos previos conservados */
+  h1{margin:0 0 .25rem;font-size:clamp(2rem,6vw,3.8rem)}
+  p.lead{margin:.25rem 0 1.25rem;color:var(--muted);font-weight:300}
+  .card{
+    background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:1rem 1.25rem;
+    box-shadow:0 10px 30px rgba(0,0,0,.25)
+  }
+  .ui{
+    position:fixed;top:.5rem;left:.5rem;z-index:2;
+    background:#0009;padding:.5rem .6rem;border-radius:8px;
+    font:12px/1.3 ui-monospace,Consolas,Menlo,monospace
+  }
+
+  /* === Overlay: Carrusel de Recorridos === */
+.ovl{position:fixed;inset:0;z-index:9999;display:none}
+.ovl[open]{display:grid;place-items:center}
+.ovl-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.68);backdrop-filter:blur(2px)}
+.ovl-card{
+  position:relative;width:min(1100px,96vw);aspect-ratio:16/9;
+  background:#0b0d12;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  box-shadow:0 24px 64px rgba(0,0,0,.55)
+}
+.ovl-close{
+  position:absolute;top:.6rem;right:.6rem;z-index:2;cursor:pointer;
+  background:#000;border:1px solid var(--line);color:var(--muted);
+  padding:.4rem .6rem;border-radius:10px;font:12px ui-monospace,Consolas
+}
+.ovl-head{position:absolute;left:1rem;top:1rem;z-index:2;color:var(--muted);font-weight:600}
+
+.ovl-viewport{position:absolute;inset:0;overflow:hidden}
+.ovl-track{
+  --speed: 70s; /* ajusta la velocidad global */
+  display:flex;gap:1rem;padding:2rem;width:max-content;
+  animation:ovl-scroll var(--speed) linear infinite
+}
+@keyframes ovl-scroll{
+  from{transform:translateX(0)}
+  to  {transform:translateX(-50%)} /* recorre la mitad porque duplicamos el contenido */
+}
+.ovl-item{
+  flex:0 0 340px;display:grid;align-content:start;gap:.5rem;
+  background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02));
+  border:1px solid var(--line);border-radius:14px;padding:1rem
+}
+.ovl-thumb{
+  width:100%;aspect-ratio:16/9;border-radius:10px;
+  background:#111 url('https://picsum.photos/seed/rv1/800/450') center/cover no-repeat;
+  border:1px solid var(--line)
+}
+.ovl-title{margin:0;color:#fff;font-size:14px}
+.ovl-meta{margin:0;color:var(--muted);font-size:12px}
+.ovl-cta{
+  margin-top:.25rem;display:inline-block;padding:.35rem .5rem;
+  border:1px solid var(--line);border-radius:8px;color:var(--muted);text-decoration:none
+}
+@media (prefers-reduced-motion: reduce){
+  .ovl-track{animation-duration:1ms}
+}
+
