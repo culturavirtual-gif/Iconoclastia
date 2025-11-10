@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+- name: OpenAI Codex Code Generator
+  uses: lemonberrylabs/openai-codex-action@v0.3.0
+
